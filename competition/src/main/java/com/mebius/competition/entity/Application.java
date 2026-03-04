@@ -4,16 +4,17 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
 
-/**
- * 对应 MySQL 里的 sys_application 表 (关联学生和竞赛的中间表)
- */
 @TableName("sys_application")
 public class Application {
 
     @TableId
     private Long id;
-    private String studentId;
+    private String studentId; // 报名人（队长或个人）
     private Long compId;
+
+    // 🌟 新增：队伍ID公章
+    private Long teamId;
+
     private String statement;
     private String fileUrl;
     private String status;
@@ -30,6 +31,9 @@ public class Application {
 
     public Long getCompId() { return compId; }
     public void setCompId(Long compId) { this.compId = compId; }
+
+    public Long getTeamId() { return teamId; }
+    public void setTeamId(Long teamId) { this.teamId = teamId; }
 
     public String getStatement() { return statement; }
     public void setStatement(String statement) { this.statement = statement; }

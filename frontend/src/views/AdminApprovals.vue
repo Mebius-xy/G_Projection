@@ -3,7 +3,7 @@
     <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-100">
       <div class="flex items-center gap-2">
         <div class="w-10 h-10 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xl">
-          <i class="fas fa-stamp"></i>
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
         </div>
         <div>
           <h2 class="text-xl font-bold text-gray-800">数据权限审批中心</h2>
@@ -13,7 +13,7 @@
     </div>
 
     <div v-if="isLoading" class="text-center py-20 text-purple-500">
-      <i class="fas fa-spinner fa-spin text-4xl mb-4"></i>
+      <svg class="animate-spin h-10 w-10 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
     </div>
 
     <div v-else class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -29,7 +29,10 @@
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
         <tr v-for="app in approvals" :key="app.id" class="hover:bg-gray-50 transition">
-          <td class="py-3 px-4 text-sm font-medium text-gray-900"><i class="fas fa-chalkboard-teacher text-gray-400 mr-1"></i> {{ app.teacherName }}</td>
+          <td class="py-3 px-4 text-sm font-medium text-gray-900 flex items-center mt-1">
+            <svg class="w-4 h-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+            {{ app.teacherName }}
+          </td>
           <td class="py-3 px-4 text-sm font-bold text-blue-600">{{ app.targetClass }}</td>
           <td class="py-3 px-4 text-sm text-gray-500 max-w-xs truncate" :title="app.reason">{{ app.reason }}</td>
           <td class="py-3 px-4 text-sm text-gray-500">{{ app.applyTime.replace('T', ' ').substring(0, 16) }}</td>
@@ -70,18 +73,13 @@ const fetchApprovals = async () => {
   }
 }
 
-onMounted(() => {
-  fetchApprovals()
-})
+onMounted(() => { fetchApprovals() })
 
 const process = async (id, status) => {
   if(!confirm(`确定要 ${status === 'approved' ? '批准' : '驳回'} 这个数据访问请求吗？`)) return
-
   try {
     const res = await axios.post('http://localhost:8080/api/permission/process', { id, status })
-    if (res.data.success) {
-      fetchApprovals() // 重新刷新列表，状态就变了
-    }
+    if (res.data.success) fetchApprovals()
   } catch (error) {
     alert("操作失败！")
   }

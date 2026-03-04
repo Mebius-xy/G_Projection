@@ -3,9 +3,11 @@ package com.mebius.competition.controller;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.mebius.competition.entity.Application;
 import com.mebius.competition.entity.Competition;
+import com.mebius.competition.entity.Team;
 import com.mebius.competition.entity.User;
 import com.mebius.competition.mapper.ApplicationMapper;
 import com.mebius.competition.mapper.CompetitionMapper;
+import com.mebius.competition.mapper.TeamMapper;
 import com.mebius.competition.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +32,9 @@ public class ApplicationController {
     @Autowired
     private UserMapper userMapper;
 
+    //
+    @Autowired
+    private TeamMapper teamMapper;
     @PostMapping("/submit")
     public Map<String, Object> submitApplication(@RequestBody Application application) {
         Map<String, Object> result = new HashMap<>();
@@ -115,22 +120,28 @@ public class ApplicationController {
         for (Application app : apps) {
             Map<String, Object> map = new HashMap<>();
 
-            // 【🌟 核心修复点 🌟】
-            // 把雪花算法生成的超级长的 Long 型 ID，强制转换成 String (加上双引号)
-            // 这样前端 JS 接收到后，就不会擅自四舍五入了！
             map.put("id", String.valueOf(app.getId()));
-
             map.put("statement", app.getStatement());
             map.put("status", app.getStatus());
             map.put("score", app.getScore());
             map.put("feedback", app.getFeedback());
             map.put("submitTime", app.getSubmitTime());
+            // 🌟 新增修复：把“提货单”(文件下载链接) 也打包发给前端的老师！
+            map.put("fileUrl", app.getFileUrl());
 
             User student = userMapper.selectById(app.getStudentId());
             map.put("studentName", student != null ? student.getName() : "未知学生");
 
             Competition comp = competitionMapper.selectById(app.getCompId());
             map.put("compTitle", comp != null ? comp.getTitle() : "未知竞赛");
+
+            // 🌟 核心：如果是队伍报名，查出队伍名称
+            if (app.getTeamId() != null) {
+                Team team = teamMapper.selectById(app.getTeamId());
+                map.put("teamName", team != null ? team.getName() : "未知队伍");
+            } else {
+                map.put("teamName", null); // 代表个人报名
+            }
 
             resultList.add(map);
         }

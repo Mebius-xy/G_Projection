@@ -1,143 +1,128 @@
 import { createRouter, createWebHistory } from 'vue-router'
+
+// 导入两个最核心的外壳和门面
 import Login from '../views/Login.vue'
-import ChangePassword from '../views/ChangePassword.vue'
 import Layout from '../views/Layout.vue'
-import Dashboard from '../views/Dashboard.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    // ================= 独立房间 (不带侧边栏和顶栏) =================
+    {
+      path: '/',
+      redirect: '/login' // 根目录默认跳转到登录
+    },
     {
       path: '/login',
       name: 'login',
-      component: Login // 系统大门
+      component: Login
     },
     {
       path: '/change-password',
       name: 'changePassword',
-      component: ChangePassword // 强制改密室
+      component: () => import('../views/ChangePassword.vue')
     },
 
-    // ================= 商场主体内部 (带侧边栏和顶栏) =================
+    // ================= 核心业务区域 (被 Layout 相框包裹) =================
     {
       path: '/',
-      component: Layout, // 商场骨架外壳
-      redirect: '/dashboard', // 一进商场，默认把视角切到首页
+      component: Layout,
       children: [
-        // 1. 公共区域
-        {
-          path: 'dashboard',
-          name: 'dashboard',
-          component: Dashboard
-        },
+        // 1. 任何人登录后都能看的公共区域
+        { path: 'dashboard', name: 'dashboard', component: () => import('../views/Dashboard.vue') },
+        { path: 'forum', name: 'forum', component: () => import('../views/Forum.vue') },
+        { path: 'study', name: 'study', component: () => import('../views/StudyZone.vue') },
+        { path: 'profile', name: 'profile', component: () => import('../views/Profile.vue') },
+        { path: 'settings', name: 'settings', component: () => import('../views/Settings.vue') },
+        { path: 'user/:id', name: 'publicProfile', component: () => import('../views/PublicProfile.vue') },
 
-        // 2. 学生区域
-        {
-          path: 'competitions',
-          name: 'competitions',
-          // 【懒加载技术】() => import(...) 意思是：
-          // 只有当用户真的点击了这个菜单，系统才会去下载这个页面的代码。
-          // 这样能让你的系统在第一次打开时速度飞快！
-          component: () => import('../views/Competitions.vue')
-        },
+        // 🌟 修复：将竞赛大厅从“仅限学生”挪到公共区域，让老师也能看 🌟
+        { path: 'competitions', name: 'competitions', component: () => import('../views/Competitions.vue') },
+
+        // 2. 学生专属区域
         {
           path: 'my-apps',
           name: 'myApps',
-          component: () => import('../views/MyApplications.vue')
+          component: () => import('../views/MyApplications.vue'),
+          meta: { roles: ['student'] }
         },
 
-        // 3. 教师区域
+        // 3. 教师专属区域
         {
           path: 'review',
           name: 'review',
-          component: () => import('../views/Review.vue')
+          component: () => import('../views/Review.vue'),
+          meta: { roles: ['teacher'] }
         },
         {
           path: 'teacher-perm',
           name: 'teacherPerm',
-          component: () => import('../views/TeacherPermission.vue')
+          component: () => import('../views/TeacherPermission.vue'),
+          meta: { roles: ['teacher'] }
         },
 
-        // 4. 管理员区域
+        // 4. 管理员专属区域
+        {
+          path: 'admin-comps',
+          name: 'adminComps',
+          component: () => import('../views/AdminCompetitions.vue'),
+          meta: { roles: ['admin'] }
+        },
         {
           path: 'admin-users',
           name: 'adminUsers',
-          component: () => import('../views/AdminUsers.vue')
+          component: () => import('../views/AdminUsers.vue'),
+          meta: { roles: ['admin'] }
         },
         {
           path: 'admin-approvals',
           name: 'adminApprovals',
-          component: () => import('../views/AdminApprovals.vue')
-        },
-        {
-          path:'admin-comps',
-          name: 'adminComps',
-          component: () => import('../views/AdminCompetitions.vue')
-        },
-        {
-          path:'forum',
-          name: 'forum',
-          component: () => import('../views/Forum.vue')
-        },
-        {
-          path:'profile',
-          name: 'profile',
-          component: () => import('../views/Profile.vue')
-        },
-        {
-          path:'settings',
-          name: 'settings',
-          component: () => import('../views/Settings.vue')
-        },
-        {
-          path:'study',
-          name: 'study',
-          component: () => import('../views/StudyZone.vue')
+          component: () => import('../views/AdminApprovals.vue'),
+          meta: { roles: ['admin'] }
         }
       ]
+    },
+
+    // 捕获所有瞎敲的乱码网址，统统丢回主页
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/dashboard'
     }
   ]
 })
 
-/**
- * ================= 全局走廊保安 (路由守卫) =================
- * 每次你点链接、或者在地址栏敲回车，保安都会先拦住你，执行这个函数。
- * to: 你想去哪
- * from: 你从哪来
- * next: 决定你是通过、还是被踢走
- */
+// ================= 🌟 核心安保系统：全局前置守卫 🌟 =================
 router.beforeEach((to, from, next) => {
-  // 掏出口袋里的信息
-  const token = localStorage.getItem('token')
-  const userStr = localStorage.getItem('currentUser')
-
-  // 场景 1：你想溜进内部房间，但你没带房卡 (未登录)
-  if (to.name !== 'login' && !token) {
-    next({ name: 'login' }) // 保安：回去登录！
-    return
+  // 1. 如果用户要去登录页，直接放行
+  if (to.path === '/login') {
+    return next();
   }
 
-  // 场景 2：你带了房卡 (已登录)
-  if (token && userStr) {
-    const user = JSON.parse(userStr)
-
-    // 检查 2.1：你的卡上是不是贴着“首次登录”的红标？
-    // 并且你现在想去的地方不是“改密室”？
-    if (user.isFirstLogin === true && to.path !== '/change-password') {
-      next('/change-password') // 保安：不改密码哪都不许去！强制押送！
-      return
-    }
-
-    // 检查 2.2：你明明已经登录了，还在地址栏手敲 /login 想回登录页？
-    if (to.name === 'login') {
-      next('/dashboard') // 保安：你已经进来了，别去大门挤着，送你回大堂！
-      return
-    }
+  // 2. 检查有没有房卡 (有没有登录过)
+  const userStr = localStorage.getItem('currentUser');
+  if (!userStr) {
+    alert('非法访问：请先登录系统！');
+    return next('/login');
   }
 
-  // 场景 3：一切合法，没有触发任何违规条件
-  next() // 保安：请进！
+  const currentUser = JSON.parse(userStr);
+
+  // 3. 强制改密拦截
+  if (currentUser.isFirstLogin && to.path !== '/change-password') {
+    alert('安全警告：请先完成初始密码修改！');
+    return next('/change-password');
+  }
+
+  // 4. 🌟 权限越界拦截 (管理员绿灯特权) 🌟
+  // 如果这个页面设置了门禁名单 (to.meta.roles)
+  // 并且当前用户不在名单里 (!to.meta.roles.includes(currentUser.role))
+  // 并且当前用户【不是管理员】 (currentUser.role !== 'admin')
+  if (to.meta.roles && !to.meta.roles.includes(currentUser.role) && currentUser.role !== 'admin') {
+    alert(`越权操作拦截：您的身份 (${currentUser.role}) 无权访问此页面！`);
+    return next('/dashboard');
+  }
+
+  // 安检全部通过，放行
+  next();
 })
 
 export default router

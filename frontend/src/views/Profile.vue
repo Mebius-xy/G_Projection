@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-6xl mx-auto space-y-6 font-sans">
+  <div class="max-w-6xl mx-auto space-y-6 font-sans pb-10">
     <!-- 页面标题 -->
     <div class="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
       <div class="flex items-center gap-3">
@@ -21,7 +21,8 @@
 
           <div class="px-6 pb-6 relative">
             <div class="absolute -top-12 left-6 p-1 bg-white rounded-full shadow-md">
-              <img :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser.id}&backgroundColor=e2e8f0`" class="w-20 h-20 rounded-full border border-gray-200">
+              <!-- 🌟 核心修改 1：使用本地防断网头像生成器 -->
+              <img :src="generateAvatar(currentUser.name)" class="w-20 h-20 rounded-full border border-gray-200">
             </div>
 
             <div class="pt-12">
@@ -85,7 +86,8 @@
               <div class="space-y-2">
                 <div v-for="req in friendRequests" :key="req.requestId" class="flex justify-between items-center bg-white p-3 rounded-lg border border-yellow-200/50 shadow-sm hover:shadow-md transition">
                   <div class="flex items-center gap-3">
-                    <img :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${req.requesterId}&backgroundColor=e2e8f0`" class="w-10 h-10 rounded-full border border-gray-100">
+                    <!-- 🌟 核心修改 2：好友申请头像本地化 -->
+                    <img :src="generateAvatar(req.requesterName)" class="w-10 h-10 rounded-full border border-gray-100">
                     <div>
                       <p class="font-bold text-gray-800 text-sm">{{ req.requesterName }} <span class="text-xs font-normal text-gray-500 ml-1">请求加为好友</span></p>
                       <p class="text-[11px] text-gray-400 mt-0.5">{{ req.className || '无班级信息' }}</p>
@@ -107,7 +109,8 @@
               <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div v-for="friend in friendsList" :key="friend.id" class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl border border-gray-100 transition group cursor-pointer" @click="$router.push(`/user/${friend.id}`)">
                   <div class="flex items-center gap-3 overflow-hidden">
-                    <img :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.id}&backgroundColor=e2e8f0`" class="w-10 h-10 rounded-full border border-gray-200 shadow-sm bg-white shrink-0">
+                    <!-- 🌟 核心修改 3：好友列表头像本地化 -->
+                    <img :src="generateAvatar(friend.name)" class="w-10 h-10 rounded-full border border-gray-200 shadow-sm bg-white shrink-0">
                     <div class="overflow-hidden">
                       <p class="font-bold text-gray-800 text-sm group-hover:text-blue-600 transition">{{ friend.name }}</p>
                       <p class="text-xs text-gray-500 truncate">{{ friend.signature || friend.className || '这人很懒' }}</p>
@@ -157,7 +160,6 @@
                     已上车: {{ team.memberCount }} 人
                   </span>
 
-                  <!-- 🌟 核心修复：队长解散与队员退出机制 🌟 -->
                   <div v-if="team.isCaptain" class="flex gap-2">
                     <button @click="handleDismissTeam(team.id)" class="text-xs bg-white text-red-500 border border-red-200 hover:bg-red-50 px-2 py-1.5 rounded-lg font-bold transition shadow-sm" title="解散队伍">
                       解散车队
@@ -263,7 +265,8 @@
           <div v-else class="space-y-2">
             <div v-for="friend in friendsList" :key="friend.id" class="flex justify-between items-center p-3 border border-gray-100 rounded-xl hover:bg-gray-50 transition">
               <div class="flex items-center gap-3">
-                <img :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${friend.id}&backgroundColor=e2e8f0`" class="w-10 h-10 rounded-full border border-gray-200 bg-white">
+                <!-- 🌟 核心修改 4：邀请弹窗头像本地化 -->
+                <img :src="generateAvatar(friend.name)" class="w-10 h-10 rounded-full border border-gray-200 bg-white">
                 <div>
                   <span class="text-sm font-bold text-gray-800 block">{{ friend.name }}</span>
                   <span class="text-[10px] text-gray-500">{{ friend.className || '神秘好友' }}</span>
@@ -285,6 +288,8 @@
 import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
+// 🌟 引入咱们刚刚建好的头像生成神器
+import { generateAvatar } from '../utils/avatar'
 
 const router = useRouter()
 
@@ -292,7 +297,6 @@ const router = useRouter()
 const userStr = localStorage.getItem('currentUser')
 const currentUser = ref(userStr ? JSON.parse(userStr) : { name: '游客', role: 'student' })
 
-// 默认停在队伍页方便测试
 const activeTab = ref('teams')
 
 // ================== 修改资料逻辑 ==================
@@ -412,13 +416,12 @@ const sendInvite = async (friendId) => {
   }
 }
 
-// 🌟 新增：报废大巴车 (解散队伍)
 const handleDismissTeam = async (teamId) => {
   if (!confirm("警告：解散车队将丢失所有乘客信息，确认解散吗？")) return
   try {
     const res = await axios.post(`http://localhost:8080/api/team/dismiss/${teamId}?userId=${currentUser.value.id}`)
     if(res.data.success) {
-      loadData() // 刷新大巴车列表
+      loadData()
     } else {
       alert(res.data.message)
     }
@@ -427,7 +430,6 @@ const handleDismissTeam = async (teamId) => {
   }
 }
 
-// 🌟 新增：跳车 (退出队伍)
 const handleLeaveTeam = async (teamId) => {
   if (!confirm("确认要退出这个队伍吗？")) return
   try {
@@ -436,7 +438,7 @@ const handleLeaveTeam = async (teamId) => {
       userId: currentUser.value.id
     })
     if(res.data.success) {
-      loadData() // 刷新大巴车列表
+      loadData()
     } else {
       alert(res.data.message)
     }
@@ -455,7 +457,6 @@ const handleLeaveTeam = async (teamId) => {
   animation: fadeInUp 0.3s ease-out forwards;
 }
 
-/* 美化滚动条 */
 .overflow-y-auto::-webkit-scrollbar {
   width: 6px;
 }

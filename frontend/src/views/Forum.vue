@@ -1,5 +1,5 @@
 <template>
-  <div class="relative min-h-full font-sans">
+  <div class="relative min-h-full font-sans pb-10">
     <!-- 头部横幅与操作区 -->
     <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-gray-100">
       <div class="flex items-center gap-3">
@@ -47,7 +47,8 @@
 
           <div class="flex items-center gap-5 mt-4 text-xs text-gray-500">
             <span class="flex items-center gap-1.5 font-medium" :class="getRoleTextColor(post.authorRole)">
-              <img :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${post.authorName}&backgroundColor=e2e8f0`" class="w-5 h-5 rounded-full border border-gray-200">
+              <!-- 🌟 替换为本地头像生成器 -->
+              <img :src="generateAvatar(post.authorName)" class="w-5 h-5 rounded-full border border-gray-200">
               {{ post.authorName }}
             </span>
             <span class="flex items-center gap-1">
@@ -65,7 +66,7 @@
         <div class="flex flex-col items-end gap-3 shrink-0">
           <span class="px-3 py-1 bg-gray-50 text-gray-600 text-xs font-bold rounded-md border border-gray-200 shadow-sm whitespace-nowrap">{{ post.tag }}</span>
 
-          <!-- 🌟 核心修复：加上 post.authorName === currentUser.name 的双重比对 🌟 -->
+          <!-- 🌟 核心修复：加上 post.authorName === currentUser.name 的双重比对，并换成醒目红色 🌟 -->
           <button
               @click.stop="handleDeletePost(post.id)"
               v-if="currentUser && (String(currentUser.id) === String(post.authorId) || currentUser.name === post.authorName || currentUser.role === 'admin')"
@@ -83,9 +84,13 @@
     <!-- 🌟 高级交互：右侧滑出的帖子详情抽屉 (Drawer) 🌟 -->
     <!-- ========================================================= -->
     <div v-if="showDetailDrawer" class="fixed inset-0 z-[110] flex justify-end">
+      <!-- 黑色半透明背景遮罩 -->
       <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm transition-opacity" @click="closeDrawer"></div>
 
+      <!-- 抽屉本体 -->
       <div class="bg-white w-full max-w-2xl h-full shadow-2xl flex flex-col transform transition-transform animate-slide-in-right relative z-10">
+
+        <!-- 抽屉头部：标题栏 -->
         <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/80 shrink-0">
           <h3 class="text-sm font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
             <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
@@ -96,13 +101,17 @@
           </button>
         </div>
 
+        <!-- 抽屉中部：滚动内容区 (原贴 + 评论列表) -->
         <div class="flex-1 overflow-y-auto bg-gray-50/30 p-6 scroll-smooth">
+
+          <!-- 原贴区块 (楼主) -->
           <div v-if="currentPost" class="bg-white p-6 rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.04)] border border-gray-100 mb-8 relative">
             <span class="absolute top-4 right-4 text-[10px] font-bold px-2 py-1 rounded bg-blue-50 text-blue-600 border border-blue-100">楼主 (原贴)</span>
             <h2 class="text-2xl font-bold text-gray-900 mb-4 pr-16">{{ currentPost.title }}</h2>
 
             <div class="flex items-center gap-3 mb-6">
-              <img :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentPost.authorName}&backgroundColor=e2e8f0`" class="w-10 h-10 rounded-full shadow-sm border border-gray-200">
+              <!-- 🌟 替换为本地头像生成器 -->
+              <img :src="generateAvatar(currentPost.authorName)" class="w-10 h-10 rounded-full shadow-sm border border-gray-200">
               <div>
                 <p class="font-bold text-sm text-gray-800" :class="getRoleTextColor(currentPost.authorRole)">{{ currentPost.authorName }}</p>
                 <p class="text-xs text-gray-400">{{ currentPost.createTime.replace('T', ' ').substring(0, 16) }}</p>
@@ -118,6 +127,7 @@
             <h4 class="font-bold text-gray-800 text-lg">全部评论 ({{ comments.length }})</h4>
           </div>
 
+          <!-- 评论列表区块 -->
           <div v-if="isCommentsLoading" class="text-center py-10 text-gray-400">
             <svg class="animate-spin h-6 w-6 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             <p class="text-xs">正在搬运数据...</p>
@@ -129,7 +139,9 @@
 
           <div v-else class="space-y-4">
             <div v-for="(comment, index) in comments" :key="comment.id" class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex gap-4 animate-fade-in-up">
-              <img :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.authorName}&backgroundColor=e2e8f0`" class="w-10 h-10 rounded-full border border-gray-200 shrink-0">
+              <!-- 🌟 替换为本地头像生成器 -->
+              <img :src="generateAvatar(comment.authorName)" class="w-10 h-10 rounded-full border border-gray-200 shrink-0">
+
               <div class="flex-1">
                 <div class="flex justify-between items-center mb-1">
                   <span class="font-bold text-sm text-gray-800" :class="getRoleTextColor(comment.authorRole)">{{ comment.authorName }}</span>
@@ -144,9 +156,11 @@
           </div>
         </div>
 
+        <!-- 抽屉底部：盖楼输入区 -->
         <div class="p-5 border-t border-gray-200 bg-white shrink-0">
           <form @submit.prevent="submitComment" class="flex gap-3">
-            <img :src="`https://api.dicebear.com/7.x/avataaars/svg?seed=${currentUser?.name || 'guest'}&backgroundColor=e2e8f0`" class="w-10 h-10 rounded-full border border-gray-200 hidden sm:block">
+            <!-- 🌟 替换为本地头像生成器 -->
+            <img :src="generateAvatar(currentUser?.name)" class="w-10 h-10 rounded-full border border-gray-200 hidden sm:block">
             <div class="flex-1 relative">
               <input
                   v-model="newCommentText"
@@ -224,6 +238,8 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
+// 🌟 引入刚刚写好的本地纯色头像生成器
+import { generateAvatar } from '../utils/avatar'
 
 const userStr = localStorage.getItem('currentUser')
 const currentUser = userStr ? JSON.parse(userStr) : null
@@ -245,12 +261,14 @@ const fetchPosts = async () => {
 
 onMounted(() => fetchPosts())
 
+// 🌟 新增：特权删帖逻辑
 const handleDeletePost = async (postId) => {
   if (!confirm("确定要永久删除这篇帖子及所有评论吗？操作不可逆！")) return
   try {
+    // 调用后端的删帖接口，带上操作人的身份进行双重校验
     const res = await axios.post(`http://localhost:8080/api/forum/delete/${postId}?userId=${currentUser.id}&role=${currentUser.role}`)
     if (res.data.success) {
-      fetchPosts()
+      fetchPosts() // 重新拉取列表，被删的帖子就会立刻消失
     } else {
       alert(res.data.message)
     }

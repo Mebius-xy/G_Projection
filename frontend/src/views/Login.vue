@@ -101,11 +101,16 @@
               <svg class="absolute left-4 top-4 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
               <input
                   v-model="loginForm.password"
-                  type="password"
+                  :type="showPassword ? 'text' : 'password'"
                   required
-                  class="w-full bg-gray-50 border border-gray-200 text-gray-900 text-base rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white block pl-12 p-3.5 transition-all outline-none"
+                  class="w-full bg-gray-50 border border-gray-200 text-gray-900 text-base rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white block pl-12 pr-12 p-3.5 transition-all outline-none"
                   placeholder="请输入密码"
               >
+              <!-- 🌟 新增：密码可见性切换小眼睛 -->
+              <button type="button" @click="showPassword = !showPassword" class="absolute right-4 top-3.5 text-gray-400 hover:text-blue-500 transition">
+                <svg v-if="!showPassword" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.29 3.29m0 0a10.05 10.05 0 015.71-1.595c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0l-3.29-3.29"></path></svg>
+                <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+              </button>
             </div>
           </div>
 
@@ -160,10 +165,13 @@
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
+// 🌟 1. 引入我们的高级提示组件
+import { toast } from '../utils/toast'
 
 const router = useRouter()
 const isLoading = ref(false)
 const showForgotModal = ref(false)
+const showPassword = ref(false)
 
 const publicRoles = [
   { label: '学生通道', value: 'student' },
@@ -208,16 +216,21 @@ const handleLogin = async () => {
       localStorage.setItem('currentUser', JSON.stringify(response.data.data))
       localStorage.setItem('token', response.data.data.id)
 
+      // 🌟 2. 替换掉原来的 alert
+      toast.success('登录成功，欢迎回来！')
+
       if (response.data.data.isFirstLogin === true) {
         router.push('/change-password')
       } else {
         router.push('/dashboard')
       }
     } else {
-      alert(response.data.message)
+      // 🌟 2. 替换掉原来的 alert
+      toast.error(response.data.message)
     }
   } catch (error) {
-    alert("网络连接失败，请确认后端已启动！")
+    // 🌟 2. 替换掉原来的 alert
+    toast.error('网络连接失败，请确认后端已启动！')
   } finally {
     isLoading.value = false
   }

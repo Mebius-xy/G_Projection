@@ -1,0 +1,21 @@
+server:
+  port: 8080 # 咱们后厨的服务窗口门牌号
+
+spring:
+  datasource:
+    # 数据库连接地址，competition_sys 是你在 cmd 里建的数据库名
+    url: jdbc:mysql://localhost:3306/competition_sys?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 1234 # 【注意】改成你本地 MySQL 的真实密码！
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  # 🌟 修复：按照 YAML 的层级缩进格式，配置文件上传大小限制 🌟
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+mybatis-plus:
+  configuration:
+    # 开启控制台打印 SQL 语句，这是查 Bug 必备神器
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

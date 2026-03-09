@@ -19,6 +19,11 @@ public class Competition {
     private LocalDate deadline;
     private Integer status;
     private LocalDateTime createTime;
+    // ... existing code ...
+
+    // 🌟 新增：是否需要审核的开关
+    private Integer needReview;
+    // ... existing code ... getter and setter 别忘了或者用了 @Data 就不用管
 
     // ================= 手动生成的 Getter 和 Setter =================
     public Long getId() { return id; }
@@ -41,4 +46,7 @@ public class Competition {
 
     public LocalDateTime getCreateTime() { return createTime; }
     public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
+    public Integer getNeedReview() { return needReview; }
+    public void setNeedReview(Integer needReview) { this.needReview = needReview; }
+
 }

@@ -1,10 +1,12 @@
 package com.mebius.competition.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.mebius.competition.entity.Application;
 import com.mebius.competition.entity.Notification;
 import com.mebius.competition.entity.Team;
 import com.mebius.competition.entity.TeamMember;
 import com.mebius.competition.entity.User;
+import com.mebius.competition.mapper.ApplicationMapper;
 import com.mebius.competition.mapper.NotificationMapper;
 import com.mebius.competition.mapper.TeamMapper;
 import com.mebius.competition.mapper.TeamMemberMapper;
@@ -25,12 +27,19 @@ public class TeamController {
 
     @Autowired
     private TeamMapper teamMapper;
+
     @Autowired
     private TeamMemberMapper teamMemberMapper;
+
     @Autowired
     private NotificationMapper notificationMapper;
+
     @Autowired
     private UserMapper userMapper;
+
+    // 🌟 新增：引入报名表机器人，用来查这辆车有没有报过名
+    @Autowired
+    private ApplicationMapper applicationMapper;
 
     /**
      * 1. 创建队伍
@@ -69,14 +78,14 @@ public class TeamController {
         Team team = teamMapper.selectById(teamId);
         User captain = userMapper.selectById(captainId);
 
-        // 核心修复：增加空指针判断，防止找不到大巴车导致后端崩溃 (500错误)
+        // 增加空指针判断，防止找不到大巴车导致后端崩溃
         if (team == null || captain == null) {
             result.put("success", false);
             result.put("message", "发送失败：找不到队伍或队长！(可能是旧数据的ID精度已丢失)");
             return result;
         }
 
-        // 新增体验优化：防止手抖重复邀请
+        // 防止手抖重复邀请
         Long count = teamMemberMapper.selectCount(new QueryWrapper<TeamMember>()
                 .eq("team_id", teamId)
                 .eq("user_id", friendId));
@@ -125,7 +134,7 @@ public class TeamController {
             if(team != null){
                 Map<String, Object> map = new HashMap<>();
 
-                // 核心修复：强制将大巴车 ID 转为字符串，防止传到前端时被 JS 四舍五入丢失精度
+                // 强制将大巴车 ID 转为字符串，防止传到前端时被 JS 四舍五入丢失精度
                 map.put("id", String.valueOf(team.getId()));
                 map.put("name", team.getName());
                 map.put("slogan", team.getSlogan());
@@ -149,6 +158,15 @@ public class TeamController {
         Team team = teamMapper.selectById(teamId);
 
         if (team != null && team.getCaptainId().equals(userId)) {
+
+            // 🌟 核心安全拦截：检查这辆大巴车是否已经报了名
+            Long appCount = applicationMapper.selectCount(new QueryWrapper<Application>().eq("team_id", teamId));
+            if (appCount > 0) {
+                result.put("success", false);
+                result.put("message", "解散失败：该队伍已提交过竞赛报名表，无法强行解散！");
+                return result;
+            }
+
             // 1. 删除大巴车
             teamMapper.deleteById(teamId);
             // 2. 把所有乘客赶下车 (删除所有关联的组队记录)
@@ -174,7 +192,7 @@ public class TeamController {
         Team team = teamMapper.selectById(teamId);
         if (team != null && team.getCaptainId().equals(userId)) {
             result.put("success", false);
-            result.put("message", "队长不能直接退出队伍，请使用【解散队伍】功能！");
+            result.put("message", "队长不能直接退出队伍，请使用【解散车队】功能！");
             return result;
         }
 
